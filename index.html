@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>墓碑上香連點遊戲</title>
+<style>
+:root{
+  --bg1:#6b6e73;--bg2:#3d3f43;--ink:#e8e8ea;--panel:rgba(0,0,0,.28);
+  --stone1:#b9bcc0;--stone2:#8d9094;--engrave:#2b2c2f;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#4a4c50;--bg2:#222326;--ink:#ececee;--panel:rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg1:#4a4c50;--bg2:#222326;--ink:#ececee;--panel:rgba(0,0,0,.4)}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:linear-gradient(var(--bg1),var(--bg2));color:var(--ink);
+  font-family:"Noto Serif TC","PingFang TC","Microsoft JhengHei",serif;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;padding:10px 14px 14px;box-sizing:border-box;max-width:520px;margin:0 auto}
+.top{width:100%;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:8px}
+input{flex:1;min-width:0;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);
+  background:var(--panel);color:var(--ink);font-size:16px;font-family:inherit}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip,.btn{flex:none;border:1px solid rgba(255,255,255,.2);background:var(--panel);color:var(--ink);
+  padding:6px 11px;border-radius:999px;font-size:13px;font-family:inherit;cursor:pointer}
+.btn{border-radius:10px;font-size:14px}
+.stage{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:0}
+.tomb-wrap{margin-top:14px;display:flex;flex-direction:column;align-items:center}
+.tomb{width:170px;height:210px;border-radius:85px 85px 6px 6px;position:relative;
+  background:linear-gradient(135deg,var(--stone1),var(--stone2));
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.18),inset -8px -10px 22px rgba(0,0,0,.25),0 10px 18px rgba(0,0,0,.45);
+  display:flex;align-items:center;justify-content:center}
+.tomb .rip{position:absolute;top:26px;font-size:12px;letter-spacing:3px;color:var(--engrave);opacity:.6;font-family:sans-serif}
+.tomb .txt{writing-mode:vertical-rl;color:var(--engrave);font-weight:700;letter-spacing:.15em;
+  text-shadow:1px 1px 0 rgba(255,255,255,.35);margin-top:18px;max-height:150px;line-height:1.25}
+.base{width:210px;height:18px;border-radius:4px;background:linear-gradient(var(--stone2),#6c6f73);box-shadow:0 6px 10px rgba(0,0,0,.4)}
+.count{font-size:14px;opacity:.85;text-align:center;min-height:20px}
+.burner-area{position:relative;width:100%;height:150px;display:flex;justify-content:center;align-items:flex-end;margin-bottom:6px}
+.burner{position:relative;width:150px;height:80px;transform-origin:50% 100%;transition:transform .25s ease;cursor:pointer;z-index:2;touch-action:manipulation}
+.pulse{width:100%;height:100%;position:relative}
+.pulse.pop{animation:pop .15s ease}
+@keyframes pop{50%{transform:scale(.94)}}
+.bowl{position:absolute;bottom:0;left:10px;right:10px;height:62px;border-radius:8px 8px 40px 40px;
+  background:linear-gradient(#a8742c,#6e4519 70%,#4e3012);box-shadow:inset 0 3px 0 rgba(255,255,255,.25),0 6px 10px rgba(0,0,0,.5)}
+.bowl::after{content:"";position:absolute;left:50%;top:22px;transform:translateX(-50%);width:34px;height:20px;border-radius:50%;border:2px solid rgba(255,215,130,.35)}
+.ear{position:absolute;top:14px;width:18px;height:26px;border:5px solid #8a5a20;border-radius:50%}
+.ear.l{left:-4px;border-right-color:transparent}.ear.r{right:-4px;border-left-color:transparent}
+.ash{position:absolute;left:6px;right:6px;bottom:52px;height:16px;border-radius:50%;background:#9c9a96;box-shadow:inset 0 3px 4px rgba(0,0,0,.35)}
+.sticks{position:absolute;left:0;right:0;bottom:58px;height:0}
+.s{position:absolute;bottom:0;left:50%;width:3px;height:56px;margin-left:-1.5px;border-radius:2px 2px 0 0;
+  background:linear-gradient(#c33,#a62a1c 30%,#7a1d14);transform-origin:50% 100%;
+  transform:translateX(var(--x)) rotate(var(--r));animation:grow .25s ease-out}
+@keyframes grow{from{height:0}}
+.s::before{content:"";position:absolute;top:-2px;left:-1px;width:5px;height:5px;border-radius:50%;background:#ff9a3c;box-shadow:0 0 6px 2px rgba(255,140,40,.8);animation:flick 1s infinite alternate}
+@keyframes flick{to{opacity:.65}}
+.s b{position:absolute;top:-8px;left:-3px;width:9px;height:9px;border-radius:50%;background:rgba(230,230,230,.55);filter:blur(3px);opacity:0;animation:smoke 3s infinite;animation-delay:var(--d)}
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:0}15%{opacity:.6}100%{transform:translate(var(--sx),-90px) scale(3);opacity:0}}
+.hint{position:absolute;bottom:-4px;font-size:12px;opacity:.7;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <div class="row">
+      <input id="inp" maxlength="20" placeholder="輸入墓碑上的文字…" autocomplete="off">
+      <button class="btn" id="clr">重置</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="stage">
+    <div class="tomb-wrap">
+      <div class="tomb"><span class="rip">R.I.P.</span><div class="txt" id="txt"></div></div>
+      <div class="base"></div>
+    </div>
+    <div class="count" id="count"></div>
+    <div class="burner-area">
+      <div class="burner" id="burner">
+        <div class="pulse" id="pulse">
+          <div class="bowl"><i class="ear l"></i><i class="ear r"></i></div>
+          <div class="ash"></div>
+          <div class="sticks" id="sticks"></div>
+        </div>
+      </div>
+      <div class="hint" id="hint">點擊香爐上香</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var CAP=9, STEPS=15, MAXS=1.8;
+  var ORDER=[4,3,5,2,6,1,7,0,8];
+  var presets=["愛吃鬼之墓","加班之墓","我的耐心之墓","Bug 之墓","錢包之墓","減肥計畫之墓"];
+  var clicks=0, text="愛吃鬼之墓", shown=0;
+  var inp=document.getElementById("inp"), txt=document.getElementById("txt"),
+      sticks=document.getElementById("sticks"), burner=document.getElementById("burner"),
+      pulse=document.getElementById("pulse"), count=document.getElementById("count"),
+      hint=document.getElementById("hint"), chips=document.getElementById("chips");
+
+  try{
+    var c=parseInt(localStorage.getItem("tomb-clicks"),10); if(c>0) clicks=c;
+    var t=localStorage.getItem("tomb-text"); if(t) text=t;
+  }catch(e){}
+
+  function save(){ try{ localStorage.setItem("tomb-clicks",clicks); localStorage.setItem("tomb-text",text); }catch(e){} }
+
+  function setText(v){
+    text=v||"無名氏之墓";
+    var n=text.length;
+    txt.textContent=text;
+    txt.style.fontSize=(n<=5?38:n<=8?30:n<=12?24:19)+"px";
+    save();
+  }
+
+  function addStick(slot){
+    var s=document.createElement("i");
+    s.className="s";
+    s.style.setProperty("--x",((slot-4)*11)+"px");
+    s.style.setProperty("--r",((slot-4)*4)+"deg");
+    var sm=document.createElement("b");
+    sm.style.setProperty("--d",(Math.random()*3).toFixed(2)+"s");
+    sm.style.setProperty("--sx",((Math.random()*30-15)|0)+"px");
+    s.appendChild(sm);
+    sticks.appendChild(s);
+  }
+
+  function render(){
+    var n=Math.min(clicks,CAP);
+    while(shown<n){ addStick(ORDER[shown]); shown++; }
+    while(shown>n){ sticks.removeChild(sticks.lastChild); shown--; }
+    var scale=1;
+    if(clicks>CAP){ scale=1+((clicks-CAP)%STEPS)*((MAXS-1)/(STEPS-1)); }
+    burner.style.transform="scale("+scale.toFixed(3)+")";
+    var extra=clicks>CAP?Math.floor((clicks-CAP)/STEPS):0;
+    count.textContent=clicks===0?"":"已上香 "+clicks+" 次"+(clicks>CAP?"　香爐成長 "+(((clicks-CAP)%STEPS)+1)+"/"+STEPS+(extra?"（輪迴 "+extra+" 次）":""):"　香 "+n+"/"+CAP+" 炷");
+    hint.style.display=clicks===0?"block":"none";
+  }
+
+  burner.addEventListener("pointerdown",function(e){
+    e.preventDefault();
+    clicks++;
+    pulse.classList.remove("pop"); void pulse.offsetWidth; pulse.classList.add("pop");
+    render(); save();
+  });
+
+  inp.value=text;
+  inp.addEventListener("input",function(){ setText(inp.value.trim()); });
+
+  presets.forEach(function(p){
+    var b=document.createElement("button");
+    b.className="chip"; b.textContent=p;
+    b.addEventListener("click",function(){ inp.value=p; setText(p); });
+    chips.appendChild(b);
+  });
+
+  document.getElementById("clr").addEventListener("click",function(){
+    if(clicks===0) return;
+    if(confirm("要把點擊次數歸零嗎？")){ clicks=0; render(); save(); }
+  });
+
+  setText(text);
+  render();
+})();
+</script>
+</body>
+</html>
